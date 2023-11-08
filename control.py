@@ -1,5 +1,7 @@
 from connect import sqlserver, postgressbd, postgressbd_local
-from models import base_value, result, img, busca_prod, config, recommendation
+from models import base_value, result, img, busca_prod, config, recommendation, carousel,parametros
+import math
+from datetime import date
 
 
 def exec_busca_prod(cd_barra):
@@ -17,11 +19,11 @@ def exec_busca_prod(cd_barra):
         return {'boll': True, 'cd_prod': r[0]}
 
 
-def exec_base_value(cd_prod, cd_filial):
+def exec_base_value(cd_prod, cd_filial, cd_bar):
     try:
         conn = sqlserver()
         cursor = conn.cursor()
-        cursor.execute(base_value(cd_prod=cd_prod, cd_filial=cd_filial))
+        cursor.execute(base_value(cd_prod=cd_prod, cd_filial=cd_filial,cd_bar=cd_bar))
         cursor.execute(result())
         r = cursor.fetchone()
         if result is None:
@@ -53,11 +55,15 @@ def exec_base_value(cd_prod, cd_filial):
                 'produto_leve_kit': r[17],
                 'valor_de_produto_kit': "{:.2f}".format(r[18]),
                 'valor_produto_kit': "{:.2f}".format(r[19]),
-                'flag_oferta': r[20],
-                'flag_desc_acima': r[21],
-                'flag_pague_leve': r[22],
-                'flag_kit': r[23],
-                'flag_estoque': r[24]
+                'pre_vencido': "{:.2f}".format(r[20]),
+                'estoque_pre': int(r[21]),
+                'flag_oferta': r[22],
+                'flag_desc_acima': r[23],
+                'flag_pague_leve': r[24],
+                'flag_kit': r[25],
+                'flag_pre_vencido': r[26],
+                'flag_estoque': r[27],
+                'estoque': int(r[28])
             }
     except:
         return {'boll': False}
@@ -89,7 +95,19 @@ def exec_config(cd_filial: int):
     else:
         conn.commit()
         conn.close()
-        return {'boll': True, 'mensage': f'Busca preço filial {cd_filial}'}
+        pgconn = postgressbd_local()
+        pgcursor = pgconn.cursor()
+        pgcursor.execute(parametros())
+        par = pgcursor.fetchone()
+        ret = {'boll': True,
+                'mensage': f'Busca preço filial {cd_filial}',
+                'filial': cd_filial,
+                'banner_time': par[1],
+                'product_time': par[2],
+                'notfound_time': par[3]}
+        pgconn.commit()
+        pgconn.close()
+        return ret
 
 
 def exec_recommendation(cd_prod: int, cd_filial: int):
@@ -106,3 +124,21 @@ def exec_recommendation(cd_prod: int, cd_filial: int):
     conn.commit()
     conn.close()
     return {'boll': True, 'prods': prods}
+
+
+def exec_carousel():  # page):
+    conn = postgressbd_local()
+    cursor = conn.cursor()
+    cursor.execute(carousel())
+    carouse = cursor.fetchall()
+    # size = len(carouse)
+    # maxpage = math.ceil(size / 5)
+    # index = (page - 1) * 5
+    # end_index = page * 5
+    ret = []
+    for i in carouse:  # [index:end_index]:
+        ret.append({
+            'id': i[0],
+            'banner': i[1]
+        })
+    return {'banner': ret}  # , 'maxpage': maxpage}
