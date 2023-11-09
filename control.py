@@ -1,5 +1,5 @@
 from connect import sqlserver, postgressbd, postgressbd_local
-from models import base_value, result, img, busca_prod, config, recommendation, carousel,parametros
+from models import base_value, result, img, busca_prod, config, recommendation, carousel,parametros,minibanner
 import math
 from datetime import date
 
@@ -31,6 +31,10 @@ def exec_base_value(cd_prod, cd_filial, cd_bar):
             conn.close()
             return {'boll': False}
         else:
+            if r[3] is not None:
+                text = r[3]
+            else:
+                text = r[1]
             conn.commit()
             conn.close()
             return {
@@ -38,7 +42,7 @@ def exec_base_value(cd_prod, cd_filial, cd_bar):
                 'cd_prod': r[0],
                 'descricao': r[1],
                 'filial': r[2],
-                'ds_e_commerce': r[3],
+                'ds_e_commerce': str(text).title(),
                 'valor_tabela': "{:.2f}".format(r[4]),
                 'valor_tabloide': "{:.2f}".format(r[5]),
                 'perc_desc': int(r[6]),
@@ -131,10 +135,6 @@ def exec_carousel():  # page):
     cursor = conn.cursor()
     cursor.execute(carousel())
     carouse = cursor.fetchall()
-    # size = len(carouse)
-    # maxpage = math.ceil(size / 5)
-    # index = (page - 1) * 5
-    # end_index = page * 5
     ret = []
     for i in carouse:  # [index:end_index]:
         ret.append({
@@ -142,3 +142,20 @@ def exec_carousel():  # page):
             'banner': i[1]
         })
     return {'banner': ret}  # , 'maxpage': maxpage}
+
+
+def exec_minibanner():
+    conn = postgressbd_local()
+    cursor = conn.cursor()
+    cursor.execute(minibanner())
+    mini = cursor.fetchall()
+    ret_mini = []
+    if not mini:
+        conn.commit()
+        conn.close()
+        return []
+    for i in mini:
+        ret_mini.append(i[2])
+    conn.commit()
+    conn.close()
+    return ret_mini

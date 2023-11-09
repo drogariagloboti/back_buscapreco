@@ -1,8 +1,9 @@
-from control import exec_base_value, img_retriv, exec_busca_prod, exec_config, exec_recommendation, exec_carousel
+from control import exec_base_value, img_retriv, exec_busca_prod, exec_config, exec_recommendation, exec_carousel, exec_minibanner
 import multiprocessing
 from waitress import serve
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import mini_queue
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
@@ -46,7 +47,7 @@ def main():
         if result['acima_unidade'] == 1:
             etiquetasp.append({
                 'tipo': 'acimaDe',
-                'txtPromocional': f"{result['perc_acima']}% OFF",
+                'txtPromocional': f"{result['perc_acima']}% de desconto",
                 'PrecoProdutoReais': result['valor_final'].split('.')[0],
                 'PrecoProdutoCentavos': ','+result['valor_final'].split('.')[1],
                 'PrecoPromoReais': result['acima_valor'].split('.')[0],
@@ -56,7 +57,7 @@ def main():
         else:
             etiquetasp.append({
                 'tipo': 'acimaDe',
-                'txtPromocional': f"{result['perc_acima']}% OFF a partir da {result['acima_unidade']}° unidade",
+                'txtPromocional': f"{result['perc_acima']}% de desconto a partir da {result['acima_unidade']}° unidade",
                 'PrecoProdutoReais': result['valor_final'].split('.')[0],
                 'PrecoProdutoCentavos': ','+result['valor_final'].split('.')[1],
                 'PrecoPromoReais': result['acima_valor'].split('.')[0],
@@ -120,13 +121,13 @@ def main():
                 if int(result_rec['acima_unidade']) == 1:
                     etiquetas.append({
                         'tipo': 'acimaDe',
-                        'txtPromocional': f"{result_rec['perc_acima']}% OFF",
+                        'txtPromocional': f"{result_rec['perc_acima']}% de desconto",
                         'APLICA_UN': True
                     })
                 else:
                     etiquetas.append({
                         'tipo': 'acimaDe',
-                        'txtPromocional': f"{result_rec['perc_acima']}% OFF a partir da {result_rec['acima_unidade']} unidade",
+                        'txtPromocional': f"{result_rec['perc_acima']}% de desconto a partir da {result_rec['acima_unidade']}° unidade",
                         'APLICA_UN': True
                     })
             if result_rec['flag_pague_leve'] == 1:
@@ -162,6 +163,9 @@ def main():
         est = result['estoque_pre']
     else:
         est = result['estoque']
+    mini = None
+    if ret['boll'] is False:
+        mini = mini_queue.next()
     final = {
         'boll': True,
         'descricao': result['descricao'],
@@ -170,7 +174,8 @@ def main():
         'etiquetas': etiquetasp,
         'estoque': estoquep,
         'qt_est': est,
-        'recomendacao': res
+        'recomendacao': res,
+        'mini': mini
     }
     return jsonify(final)
 

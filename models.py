@@ -51,7 +51,8 @@ TAB.CD_TABLOIDE = TAB_FILIAL.CD_TABLOIDE AND
 TAB.CD_EMP = TAB_FILIAL.CD_EMP
 where TAB_PROD.CD_PROD = @PROD
 AND TAB_FILIAL.CD_FILIAL = @FILIA
-AND TAB.DT_FIM>GETDATE() AND TAB.DT_INICIO<= GETDATE()
+AND TAB.DT_FIM>=FORMAT(GETDATE(), 'yyyy/MM/dd')
+AND TAB.DT_INICIO<= GETDATE()
 END
 
 --SELECT * FROM #TABLOID
@@ -144,7 +145,7 @@ LEFT JOIN #TABLOID TAB on
 TAB.CD_PROD = PROD.CD_PROD
 WHERE PROD.CD_PROD = @PROD
 AND PRECO.CD_FILIAL = @FILIA
-AND (DESCONT.DT_FIM > GETDATE() OR DESCONT.DT_FIM IS NULL)
+AND (DESCONT.DT_FIM >= GETDATE() OR DESCONT.DT_FIM IS NULL)
 AND PROD.CD_EMP = 1
 AND DESCONT.CD_TP_DESCONTO = 1
 GROUP BY 
@@ -528,4 +529,12 @@ and ativo = 1
 def parametros():
     return """
     select * from parametros;
+    """
+
+def minibanner():
+    return """
+    select * from mini_banner m inner join banner b on b.id = m.banner_id
+    where b.data_inicio <= CURRENT_DATE
+    and b.data_fim >= CURRENT_DATE
+    and m.ativo = 1
     """
