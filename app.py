@@ -1,4 +1,5 @@
-from control import exec_base_value, img_retriv, exec_busca_prod, exec_config, exec_recommendation, exec_carousel, exec_minibanner
+from control import exec_base_value, img_retriv, exec_busca_prod, exec_config, exec_recommendation, exec_carousel, \
+    exec_not_foun, exec_control_scan
 import multiprocessing
 from waitress import serve
 from flask import Flask, request, jsonify
@@ -21,10 +22,12 @@ def main():
     cd_bar = request.json['cd_prod']
     cd_prod = exec_busca_prod(cd_barra=cd_bar)
     cd_filial = int(str(request.json['cd_filial'])[:-1])
+    exec_control_scan(cd_filial=cd_filial)
     if cd_prod['boll'] is not True:
         response = {'boll': False, 'mensage': 'Lamento, produto não encontrado :('}
+        exec_not_foun({'ean': cd_bar, 'cd_filial': cd_filial})
         return response
-    result, etiquetasp = exec_base_value(cd_prod=cd_prod['cd_prod'], cd_filial=cd_filial, cd_bar=cd_bar), []
+    result, etiquetasp = exec_base_value(cd_prod=cd_prod['cd_prod'], cd_filial=cd_filial, cd_bar=cd_bar), None
     if result['boll'] is not True:
         response = {'boll': False, 'mensage': 'Lamento, produto não encontrado :('}
         return response
@@ -35,43 +38,43 @@ def main():
     else:
         estoquep = False
     if result['flag_oferta'] == 1:
-        etiquetasp.append({
+        etiquetasp = [{
             'tipo': 'rebaixa',
             'txtPromocional': 'Oferta',
             'PrecoProdutoReais': result['valor_tabela'].split('.')[0],
-            'PrecoProdutoCentavos': ','+result['valor_tabela'].split('.')[1],
+            'PrecoProdutoCentavos': ',' + result['valor_tabela'].split('.')[1],
             'PrecoPromoReais': result['valor_final'].split('.')[0],
-            'PrecoPromoCentavos': ','+result['valor_final'].split('.')[1]
-        })
+            'PrecoPromoCentavos': ',' + result['valor_final'].split('.')[1]
+        }]
     if result['flag_desc_acima'] == 1:
         if result['acima_unidade'] == 1:
-            etiquetasp.append({
+            etiquetasp = [{
                 'tipo': 'acimaDe',
                 'txtPromocional': f"{result['perc_acima']}% de desconto",
                 'PrecoProdutoReais': result['valor_final'].split('.')[0],
-                'PrecoProdutoCentavos': ','+result['valor_final'].split('.')[1],
+                'PrecoProdutoCentavos': ',' + result['valor_final'].split('.')[1],
                 'PrecoPromoReais': result['acima_valor'].split('.')[0],
-                'PrecoPromoCentavos': ','+result['acima_valor'].split('.')[1],
+                'PrecoPromoCentavos': ',' + result['acima_valor'].split('.')[1],
                 'APLICA_UN': True
-            })
+            }]
         else:
-            etiquetasp.append({
+            etiquetasp = [{
                 'tipo': 'acimaDe',
                 'txtPromocional': f"{result['perc_acima']}% de desconto a partir da {result['acima_unidade']}° unidade",
                 'PrecoProdutoReais': result['valor_final'].split('.')[0],
-                'PrecoProdutoCentavos': ','+result['valor_final'].split('.')[1],
+                'PrecoProdutoCentavos': ',' + result['valor_final'].split('.')[1],
                 'PrecoPromoReais': result['acima_valor'].split('.')[0],
-                'PrecoPromoCentavos': ','+result['acima_valor'].split('.')[1],
+                'PrecoPromoCentavos': ',' + result['acima_valor'].split('.')[1],
                 'APLICA_UN': True
-            })
+            }]
     if result['flag_pague_leve'] == 1:
-        etiquetasp.append({"tipo": 'Leve Pague',
-                           "txtPromocional": f"Leve {result['qtde_leve']} Pague {result['qtde_pague']}",
-                           "PrecoProdutoReais": result['valor_final'].split('.')[0],
-                           "PrecoProdutoCentavos": ','+result['valor_final'].split('.')[1],
-                           "PrecoPromoReais": result['valor_pague_leve'].split('.')[0],
-                           "PrecoPromoCentavos": ','+result['valor_pague_leve'].split('.')[1],
-                           "APLICA_UN": True})
+        etiquetasp = [{"tipo": 'Leve Pague',
+                      "txtPromocional": f"Leve {result['qtde_leve']} Pague {result['qtde_pague']}",
+                      "PrecoProdutoReais": result['valor_final'].split('.')[0],
+                      "PrecoProdutoCentavos": ',' + result['valor_final'].split('.')[1],
+                      "PrecoPromoReais": result['valor_pague_leve'].split('.')[0],
+                      "PrecoPromoCentavos": ',' + result['valor_pague_leve'].split('.')[1],
+                      "APLICA_UN": True}]
     # if result['flag_kit'] == 1:
     #    if result['valor_produto_kit'] == 0.01:
     #        gratis = True
@@ -90,27 +93,26 @@ def main():
     #        }
     #    })
     if result['flag_pre_vencido'] == 1:
-        etiquetasp.append({"tipo": 'Pre',
-                           "txtPromocional": f"PRODUTO PRÓXIMO AO VENCIMENTO",
-                           "PrecoProdutoReais": result['valor_final'].split('.')[0],
-                           "PrecoProdutoCentavos": ','+result['valor_final'].split('.')[1],
-                           "PrecoPromoReais": result['pre_vencido'].split('.')[0],
-                           "PrecoPromoCentavos": ','+result['pre_vencido'].split('.')[1]})
+        etiquetasp = [{"tipo": 'Pre',
+                      "txtPromocional": f"PRODUTO PRÓXIMO AO VENCIMENTO",
+                      "PrecoProdutoReais": result['valor_final'].split('.')[0],
+                      "PrecoProdutoCentavos": ',' + result['valor_final'].split('.')[1],
+                      "PrecoPromoReais": result['pre_vencido'].split('.')[0],
+                      "PrecoPromoCentavos": ',' + result['pre_vencido'].split('.')[1]}]
 
-
-    if not etiquetasp:
-        etiquetasp.append({
+    if etiquetasp is None:
+        etiquetasp = [{
             'tipo': 'nenhum',
             'PrecoProdutoReais': result['valor_final'].split('.')[0],
-            'PrecoProdutoCentavos': ','+result['valor_final'].split('.')[1],
+            'PrecoProdutoCentavos': ',' + result['valor_final'].split('.')[1],
             'PrecoPromoReais': result['valor_final'].split('.')[0],
-            'PrecoPromoCentavos': ','+result['valor_final'].split('.')[1]
-        })
+            'PrecoPromoCentavos': ',' + result['valor_final'].split('.')[1]
+        }]
 
     res = []
     if ret['boll'] is True:
         for i in ret['prods']:
-            result_rec, etiquetas = exec_base_value(cd_prod=i, cd_filial=cd_filial,cd_bar=cd_bar), []
+            result_rec, etiquetas = exec_base_value(cd_prod=i, cd_filial=cd_filial, cd_bar=cd_bar), []
             img = img_retriv(cd_prod=i)
             if result_rec['flag_oferta'] == 1:
                 etiquetas.append({
@@ -182,8 +184,6 @@ def main():
 
 @app.route('/banner', methods=['GET'])
 def banner():
-    # query_params = urllib.parse.parse_qs(request.query_string.decode())
-    # page = query_params.get('page', [''])[0]
     carousel = exec_carousel()
     return jsonify(carousel)
 

@@ -1,7 +1,6 @@
 from connect import sqlserver, postgressbd, postgressbd_local
-from models import base_value, result, img, busca_prod, config, recommendation, carousel,parametros,minibanner
-import math
-from datetime import date
+from models import base_value, result, img, busca_prod, config, recommendation, carousel, parametros, minibanner, \
+    not_found, select_filial, insert_scan, update_scan
 
 
 def exec_busca_prod(cd_barra):
@@ -34,7 +33,7 @@ def exec_base_value(cd_prod, cd_filial, cd_bar):
             if r[3] is not None:
                 text = r[3]
             else:
-                text = r[1]
+                text = str(r[1]).title()
             conn.commit()
             conn.close()
             return {
@@ -42,7 +41,7 @@ def exec_base_value(cd_prod, cd_filial, cd_bar):
                 'cd_prod': r[0],
                 'descricao': r[1],
                 'filial': r[2],
-                'ds_e_commerce': str(text).title(),
+                'ds_e_commerce': text,
                 'valor_tabela': "{:.2f}".format(r[4]),
                 'valor_tabloide': "{:.2f}".format(r[5]),
                 'perc_desc': int(r[6]),
@@ -61,13 +60,14 @@ def exec_base_value(cd_prod, cd_filial, cd_bar):
                 'valor_produto_kit': "{:.2f}".format(r[19]),
                 'pre_vencido': "{:.2f}".format(r[20]),
                 'estoque_pre': int(r[21]),
-                'flag_oferta': r[22],
-                'flag_desc_acima': r[23],
-                'flag_pague_leve': r[24],
-                'flag_kit': r[25],
-                'flag_pre_vencido': r[26],
-                'flag_estoque': r[27],
-                'estoque': int(r[28])
+                'flag_pbm': r[22],
+                'flag_oferta': r[23],
+                'flag_desc_acima': r[24],
+                'flag_pague_leve': r[25],
+                'flag_kit': r[26],
+                'flag_pre_vencido': r[27],
+                'flag_estoque': r[28],
+                'estoque': int(r[29])
             }
     except:
         return {'boll': False}
@@ -159,3 +159,24 @@ def exec_minibanner():
     conn.commit()
     conn.close()
     return ret_mini
+
+
+def exec_not_foun(prod_not_found):
+    conn = postgressbd_local()
+    cursor = conn.cursor()
+    cursor.execute(not_found(prod_not_found=prod_not_found))
+    conn.commit()
+    conn.close()
+
+
+def exec_control_scan(cd_filial):
+    conn = postgressbd_local()
+    cursor = conn.cursor()
+    cursor.execute(select_filial(cd_filial=cd_filial))
+    data_exist = cursor.fetchone()
+    if not data_exist:
+        cursor.execute(insert_scan(cd_filial=cd_filial))
+    else:
+        cursor.execute(update_scan(cd_filial=cd_filial,count=int(data_exist[2])))
+    conn.commit()
+    conn.close()

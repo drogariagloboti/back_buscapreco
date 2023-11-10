@@ -5,7 +5,7 @@ FROM EST_PROD_CD_BARRA
 WHERE CD_BARRA = '{cd_barra}'"""
 
 
-def base_value(cd_prod: int, cd_filial: int,cd_bar: str):
+def base_value(cd_prod: int, cd_filial: int, cd_bar: str):
     return f"""DECLARE @PROD INT;
 DECLARE @FILIA INT;
 SET @PROD = {cd_prod};--28775;83898;77107;83630;91250;89491;84896;87556
@@ -38,6 +38,11 @@ END
 IF OBJECT_ID('tempdb..#RESULT_FINAL') IS NOT NULL 
 BEGIN
 	DROP TABLE #RESULT_FINAL
+END
+
+IF OBJECT_ID('tempdb..#RESULT_PBM') IS NOT NULL 
+BEGIN
+	DROP TABLE #RESULT_PBM 
 END
 
 BEGIN
@@ -145,7 +150,7 @@ LEFT JOIN #TABLOID TAB on
 TAB.CD_PROD = PROD.CD_PROD
 WHERE PROD.CD_PROD = @PROD
 AND PRECO.CD_FILIAL = @FILIA
-AND (DESCONT.DT_FIM >= GETDATE() OR DESCONT.DT_FIM IS NULL)
+AND (DESCONT.DT_FIM >= FORMAT(GETDATE(), 'yyyy/MM/dd') OR DESCONT.DT_FIM IS NULL)
 AND PROD.CD_EMP = 1
 AND DESCONT.CD_TP_DESCONTO = 1
 GROUP BY 
@@ -204,7 +209,7 @@ X.FLAG_AGREGAR_DESC_QTDE_AOS_DESCONTOS_EXISTENTES
 FROM
 EST_PROD_TBL_DESC X
 WHERE
-X.DT_FIM>=GETDATE()
+X.DT_FIM>=FORMAT(GETDATE(), 'yyyy/MM/dd')
 and
 X.DT_INI<=GETDATE()
 ) D ON
@@ -272,7 +277,7 @@ SELECT
 Y.CD_EMP,Y.CD_TBL_DESC_QTDE,Y.QTDE_PAGUE,Y.QTDE_LEVE,Y.AGREGACAO
 FROM 
 EST_PROD_TBL_DESC_QTDE Y
-WHERE Y.DT_FIM >= GETDATE()
+WHERE Y.DT_FIM >= FORMAT(GETDATE(), 'yyyy/MM/dd')
 AND
 Y.DT_INI<= GETDATE()) QTDE ON
     QTDE.CD_TBL_DESC_QTDE = QTDE_FILIAL.CD_TBL_DESC_QTDE
@@ -349,7 +354,7 @@ GROUP BY
 	(SELECT
 	*
 	FROM
-	PDV_CAMPANHA_ADICIONAIS Z WHERE Z.DT_VALID>=GETDATE() AND Z.DT_INICIO<= GETDATE()) CAMP ON
+	PDV_CAMPANHA_ADICIONAIS Z WHERE Z.DT_VALID>=FORMAT(GETDATE(), 'yyyy/MM/dd') AND Z.DT_INICIO<= GETDATE()) CAMP ON
 	CAMP.CD_CAMPANHA_ADIC = FIL_CAMP.CD_CAMPANHA_ADIC
 	LEFT JOIN PDV_CAMPANHA_ADICIONAIS_EST_PROD PROD_CAMP ON
 	PROD_CAMP.CD_CAMPANHA_ADIC = CAMP.CD_CAMPANHA_ADIC
@@ -433,6 +438,24 @@ GROUP BY
   ISNULL(LOTE.QTDE_PROD, 0)) TBT ON
   TBT.CdProd = #RESULT_PRE_FINAL.CD_PROD
   AND TBT.Filial = #RESULT_PRE_FINAL.CD_FILIAL
+  
+  
+	select
+	#RESULT_FINAL.*,
+	CASE
+		WHEN COALESCE(PBM.CD_CONV,0) <> 0
+		THEN 1
+		ELSE
+		0
+	END AS FLAG_PBM
+	INTO #RESULT_PBM
+ 	FROM
+	#RESULT_FINAL
+	LEFT JOIN  (SELECT * FROM EST_PROD_RC_CLI_CONV
+	WHERE
+	EST_PROD_RC_CLI_CONV.CD_CONV = 5) PBM ON
+	PBM.CD_PROD = #RESULT_FINAL.CD_PROD
+  
     """
 
 
@@ -531,6 +554,7 @@ def parametros():
     select * from parametros;
     """
 
+
 def minibanner():
     return """
     select * from mini_banner m inner join banner b on b.id = m.banner_id
@@ -538,3 +562,36 @@ def minibanner():
     and b.data_fim >= CURRENT_DATE
     and m.ativo = 1
     """
+
+
+def not_found(prod_not_found):
+    return f"""
+    INSERT INTO public.ean_notfound(
+	ean, cd_filial, data_scan)
+	VALUES ({prod_not_found['ean']}, {prod_not_found['cd_filial']}, CURRENT_DATE);
+    """
+
+
+def select_filial(cd_filial):
+    return f"""
+    select
+*
+from scan_count
+where cd_filial = {cd_filial}
+    """
+
+
+def insert_scan(cd_filial):
+    return f"""
+    INSERT INTO public.scan_count(
+	cd_filial, scan_count)
+	VALUES ({cd_filial}, 1);
+    """
+
+
+def update_scan(cd_filial, count):
+    return f"""
+    UPDATE public.scan_count
+	SET scan_count={count + 1}
+	WHERE cd_filial = {cd_filial};
+"""
