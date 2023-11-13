@@ -61,13 +61,14 @@ def exec_base_value(cd_prod, cd_filial, cd_bar):
                 'pre_vencido': "{:.2f}".format(r[20]),
                 'estoque_pre': int(r[21]),
                 'flag_pbm': r[22],
-                'flag_oferta': r[23],
-                'flag_desc_acima': r[24],
-                'flag_pague_leve': r[25],
-                'flag_kit': r[26],
-                'flag_pre_vencido': r[27],
-                'flag_estoque': r[28],
-                'estoque': int(r[29])
+                'flag_popular': r[23],
+                'flag_oferta': r[24],
+                'flag_desc_acima': r[25],
+                'flag_pague_leve': r[26],
+                'flag_kit': r[27],
+                'flag_pre_vencido': r[28],
+                'flag_estoque': r[29],
+                'estoque': int(r[30])
             }
     except:
         return {'boll': False}
@@ -130,10 +131,10 @@ def exec_recommendation(cd_prod: int, cd_filial: int):
     return {'boll': True, 'prods': prods}
 
 
-def exec_carousel():  # page):
+def exec_carousel(cd_filial):  # page):
     conn = postgressbd_local()
     cursor = conn.cursor()
-    cursor.execute(carousel())
+    cursor.execute(carousel(cd_filial))
     carouse = cursor.fetchall()
     ret = []
     for i in carouse:  # [index:end_index]:
@@ -169,14 +170,17 @@ def exec_not_foun(prod_not_found):
     conn.close()
 
 
-def exec_control_scan(cd_filial):
+def exec_control_scan(cd_filial,cd_prod):
     conn = postgressbd_local()
     cursor = conn.cursor()
-    cursor.execute(select_filial(cd_filial=cd_filial))
-    data_exist = cursor.fetchone()
-    if not data_exist:
-        cursor.execute(insert_scan(cd_filial=cd_filial))
+    #cursor.execute(select_filial(cd_filial=cd_filial))
+    #data_exist = cursor.fetchone()
+    #if not data_exist:
+    if cd_prod['boll'] is not True:
+        cursor.execute(insert_scan(cd_filial=cd_filial,cd_prod=0))
     else:
-        cursor.execute(update_scan(cd_filial=cd_filial,count=int(data_exist[2])))
+        cursor.execute(insert_scan(cd_filial=cd_filial, cd_prod=cd_prod['cd_prod']))
+    #else:
+    #    cursor.execute(update_scan(cd_filial=cd_filial,count=int(data_exist[2])))
     conn.commit()
     conn.close()

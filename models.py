@@ -443,43 +443,54 @@ GROUP BY
 	select
 	#RESULT_FINAL.*,
 	CASE
-		WHEN COALESCE(PBM.CD_CONV,0) <> 0
+		WHEN COALESCE(PBM.CD_CONV,0) = 5
 		THEN 1
 		ELSE
 		0
-	END AS FLAG_PBM
+	END AS FLAG_PBM,
+	CASE
+		WHEN COALESCE(POPULAR.CD_FILIAL,0) <> 0 AND COALESCE(PBM.CD_CONV,0) = 2
+		THEN 1
+		ELSE 0
+		END AS FLAG_POPULAR
 	INTO #RESULT_PBM
  	FROM
 	#RESULT_FINAL
-	LEFT JOIN  (SELECT * FROM EST_PROD_RC_CLI_CONV
-	WHERE
-	EST_PROD_RC_CLI_CONV.CD_CONV = 5) PBM ON
+	LEFT JOIN  EST_PROD_RC_CLI_CONV PBM ON
 	PBM.CD_PROD = #RESULT_FINAL.CD_PROD
+	LEFT JOIN (SELECT 
+	* 
+	FROM 
+	PRC_FILIAL F
+	WHERE (F.NM_USU_FARMACIA_POPULAR <> '' OR F.NM_USU_FARMACIA_POPULAR <> NULL)
+	AND (F.SENHA_USU_FARMACIA_POPULAR <> '' OR F.SENHA_USU_FARMACIA_POPULAR <> NULL)
+	) POPULAR ON
+	POPULAR.CD_FILIAL = #RESULT_FINAL.CD_FILIAL
   
     """
 
 
 def result():
     return """SELECT
-	#RESULT_FINAL.*,
+	#RESULT_PBM.*,
 	CASE
-		WHEN #RESULT_FINAL.TABLOIDE != 0.00 OR PERC_DESC != 0.00
+		WHEN #RESULT_PBM.TABLOIDE != 0.00 OR PERC_DESC != 0.00
 		THEN 1
 		ELSE 0 END AS FLAG_OFERTA,
 	CASE
-		WHEN #RESULT_FINAL.ACIMA_DE != 0.00
+		WHEN #RESULT_PBM.ACIMA_DE != 0.00
 		THEN 1
 		ELSE 0 END AS FLAG_DESC_ACIMA,
 	CASE
-		WHEN #RESULT_FINAL.QTDE_PAGUE != 0
+		WHEN #RESULT_PBM.QTDE_PAGUE != 0
 		THEN 1
 		ELSE 0 END AS FLAG_PAGUE_LEVE,
 	CASE
-	WHEN #RESULT_FINAL.VALOR_PROD_KIT != 0
+	WHEN #RESULT_PBM.VALOR_PROD_KIT != 0
 		THEN 1
 		ELSE 0 END AS FLAG_KIT,
 	CASE
-	WHEN #RESULT_FINAL.PRE_VENCIDO != 0 AND #RESULT_FINAL.QT_PRE != 0
+	WHEN #RESULT_PBM.PRE_VENCIDO != 0
 		THEN 1
 		ELSE 0 END AS FLAG_PRE_VENCIDO,
 	CASE
@@ -489,11 +500,10 @@ def result():
 		0 END AS FLAG_POSSUI_ESTOQUE,
 	CPL.QT_EST
 	FROM
-	#RESULT_FINAL
+	#RESULT_PBM
 	LEFT JOIN EST_PROD_CPL CPL ON
-	CPL.CD_FILIAL = #RESULT_FINAL.CD_FILIAL AND
-	CPL.CD_PROD = #RESULT_FINAL.CD_PROD
-	
+	CPL.CD_FILIAL = #RESULT_PBM.CD_FILIAL AND
+	CPL.CD_PROD = #RESULT_PBM.CD_PROD
 	"""
 
 
@@ -532,8 +542,8 @@ f.data_inicio <= CURRENT_DATE and
 f.data_fim >= CURRENT_DATE"""
 
 
-def carousel():
-    return """
+def carousel(cd_filial):
+    return f"""
     select
     id,
 bannerurl,
@@ -546,6 +556,7 @@ where
 data_inicio <= CURRENT_DATE
 and data_fim >= CURRENT_DATE
 and ativo = 1
+and cd_filial = {cd_filial}
     """
 
 
@@ -561,6 +572,7 @@ def minibanner():
     where b.data_inicio <= CURRENT_DATE
     and b.data_fim >= CURRENT_DATE
     and m.ativo = 1
+    and b.ativo = 1
     """
 
 
@@ -581,11 +593,11 @@ where cd_filial = {cd_filial}
     """
 
 
-def insert_scan(cd_filial):
+def insert_scan(cd_filial, cd_prod):
     return f"""
     INSERT INTO public.scan_count(
-	cd_filial, scan_count)
-	VALUES ({cd_filial}, 1);
+	cd_filial, scan_count, cd_prod)
+	VALUES ({cd_filial}, 1, {cd_prod});
     """
 
 

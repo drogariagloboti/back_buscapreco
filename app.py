@@ -22,7 +22,7 @@ def main():
     cd_bar = request.json['cd_prod']
     cd_prod = exec_busca_prod(cd_barra=cd_bar)
     cd_filial = int(str(request.json['cd_filial'])[:-1])
-    exec_control_scan(cd_filial=cd_filial)
+    exec_control_scan(cd_filial=cd_filial, cd_prod=cd_prod)
     if cd_prod['boll'] is not True:
         response = {'boll': False, 'mensage': 'Lamento, produto não encontrado :('}
         exec_not_foun({'ean': cd_bar, 'cd_filial': cd_filial})
@@ -173,18 +173,21 @@ def main():
         'descricao': result['descricao'],
         'imagemUrl': imgp,
         'descricaoCompleta': result['ds_e_commerce'],
+        'pbm': result['flag_pbm'],
+        'popular': result['flag_popular'],
         'etiquetas': etiquetasp,
         'estoque': estoquep,
         'qt_est': est,
         'recomendacao': res,
         'mini': mini
     }
+    print('final')
     return jsonify(final)
 
 
-@app.route('/banner', methods=['GET'])
+@app.route('/banner', methods=['POST'])
 def banner():
-    carousel = exec_carousel()
+    carousel = exec_carousel(int(str(request.json['cd_filial'])[:-1]))
     return jsonify(carousel)
 
 
@@ -192,4 +195,4 @@ if __name__ == '__main__':
     num_cores = multiprocessing.cpu_count()
     print(f"Servidor executando com {num_cores} cores")
     serve(app, host='0.0.0.0', port=5000, threads=num_cores)
-    # app.run(host='0.0.0.0', port=5000, debug=True)
+    #app.run(host='0.0.0.0', port=5000, debug=True)
