@@ -1,6 +1,10 @@
+import os
+import subprocess
+
 from control import exec_base_value, img_retriv, exec_busca_prod, exec_config, exec_recommendation, exec_carousel, \
     exec_not_foun, exec_control_scan
-import multiprocessing
+# import multiprocessing
+import threading
 from waitress import serve
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -69,12 +73,12 @@ def main():
             }]
     if result['flag_pague_leve'] == 1:
         etiquetasp = [{"tipo": 'Leve Pague',
-                      "txtPromocional": f"Leve {result['qtde_leve']} Pague {result['qtde_pague']}",
-                      "PrecoProdutoReais": result['valor_final'].split('.')[0],
-                      "PrecoProdutoCentavos": ',' + result['valor_final'].split('.')[1],
-                      "PrecoPromoReais": result['valor_pague_leve'].split('.')[0],
-                      "PrecoPromoCentavos": ',' + result['valor_pague_leve'].split('.')[1],
-                      "APLICA_UN": True}]
+                       "txtPromocional": f"Leve {result['qtde_leve']} Pague {result['qtde_pague']}",
+                       "PrecoProdutoReais": result['valor_final'].split('.')[0],
+                       "PrecoProdutoCentavos": ',' + result['valor_final'].split('.')[1],
+                       "PrecoPromoReais": result['valor_pague_leve'].split('.')[0],
+                       "PrecoPromoCentavos": ',' + result['valor_pague_leve'].split('.')[1],
+                       "APLICA_UN": True}]
     # if result['flag_kit'] == 1:
     #    if result['valor_produto_kit'] == 0.01:
     #        gratis = True
@@ -94,11 +98,11 @@ def main():
     #    })
     if result['flag_pre_vencido'] == 1:
         etiquetasp = [{"tipo": 'Pre',
-                      "txtPromocional": f"PRODUTO PRÓXIMO AO VENCIMENTO",
-                      "PrecoProdutoReais": result['valor_final'].split('.')[0],
-                      "PrecoProdutoCentavos": ',' + result['valor_final'].split('.')[1],
-                      "PrecoPromoReais": result['pre_vencido'].split('.')[0],
-                      "PrecoPromoCentavos": ',' + result['pre_vencido'].split('.')[1]}]
+                       "txtPromocional": f"PRODUTO PRÓXIMO AO VENCIMENTO",
+                       "PrecoProdutoReais": result['valor_final'].split('.')[0],
+                       "PrecoProdutoCentavos": ',' + result['valor_final'].split('.')[1],
+                       "PrecoPromoReais": result['pre_vencido'].split('.')[0],
+                       "PrecoPromoCentavos": ',' + result['pre_vencido'].split('.')[1]}]
 
     if etiquetasp is None:
         etiquetasp = [{
@@ -181,7 +185,6 @@ def main():
         'recomendacao': res,
         'mini': mini
     }
-    print('final')
     return jsonify(final)
 
 
@@ -191,8 +194,23 @@ def banner():
     return jsonify(carousel)
 
 
-if __name__ == '__main__':
-    num_cores = multiprocessing.cpu_count()
-    print(f"Servidor executando com {num_cores} cores")
-    serve(app, host='0.0.0.0', port=5000, threads=num_cores)
-    #app.run(host='0.0.0.0', port=5000, debug=True)
+def start_flask():
+    if __name__ == '__main__':
+        # num_cores = multiprocessing.cpu_count()
+        # print(f"Servidor executando com {num_cores} cores")
+        serve(app, host='0.0.0.0', port=5000)
+        # app.run(host='0.0.0.0', port=5000, debug=True)
+
+
+def start_img_server():
+    diretorio_banner = os.getcwd() + '\\banner'  # Substitua pelo caminho real do diretório 'banner'
+    os.chdir(diretorio_banner)
+    comando = f"python -m http.server 8000"
+    subprocess.run(comando, shell=True)
+
+
+thread_flask = threading.Thread(target=start_flask)
+thread_img_server = threading.Thread(target=start_img_server)
+
+thread_flask.start()
+thread_img_server.start()
