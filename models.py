@@ -607,3 +607,28 @@ def update_scan(cd_filial, count):
 	SET scan_count={count + 1}
 	WHERE cd_filial = {cd_filial};
 """
+
+
+def next_banner():
+    return """
+    select
+    last_value
+    from
+    banner_id_seq
+    """
+
+
+def insert_banner(form):
+    return f"""
+    INSERT INTO public.banner(
+	bannerurl, data_inicio, data_fim, ativo, cd_filial)
+	VALUES ('{form['path']}', '{form['dt_ini']}', '{form['dt_fim']}', {form['ativo']}, {form['cd_filial']});
+    """
+
+
+def insert_banner_mini(form_mini):
+    return f"""
+    INSERT INTO public.mini_banner(
+	banner_id, urlbanner, ativo)
+	VALUES ({form_mini['banner_id']}, '{form_mini['path']}', {form_mini['ativo']});
+    """

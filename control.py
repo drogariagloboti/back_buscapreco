@@ -1,6 +1,6 @@
 from connect import sqlserver, postgressbd, postgressbd_local
 from models import base_value, result, img, busca_prod, config, recommendation, carousel, parametros, minibanner, \
-    not_found, select_filial, insert_scan, update_scan
+    not_found, select_filial, insert_scan, update_scan, next_banner, insert_banner, insert_banner_mini
 
 
 def exec_busca_prod(cd_barra):
@@ -22,7 +22,7 @@ def exec_base_value(cd_prod, cd_filial, cd_bar):
     try:
         conn = sqlserver()
         cursor = conn.cursor()
-        cursor.execute(base_value(cd_prod=cd_prod, cd_filial=cd_filial,cd_bar=cd_bar))
+        cursor.execute(base_value(cd_prod=cd_prod, cd_filial=cd_filial, cd_bar=cd_bar))
         cursor.execute(result())
         r = cursor.fetchone()
         if result is None:
@@ -105,11 +105,11 @@ def exec_config(cd_filial: int):
         pgcursor.execute(parametros())
         par = pgcursor.fetchone()
         ret = {'boll': True,
-                'mensage': f'Busca preço filial {cd_filial}',
-                'filial': cd_filial,
-                'banner_time': par[1],
-                'product_time': par[2],
-                'notfound_time': par[3]}
+               'mensage': f'Busca preço filial {cd_filial}',
+               'filial': cd_filial,
+               'banner_time': par[1],
+               'product_time': par[2],
+               'notfound_time': par[3]}
         pgconn.commit()
         pgconn.close()
         return ret
@@ -170,17 +170,36 @@ def exec_not_foun(prod_not_found):
     conn.close()
 
 
-def exec_control_scan(cd_filial,cd_prod):
+def exec_control_scan(cd_filial, cd_prod):
     conn = postgressbd_local()
     cursor = conn.cursor()
-    #cursor.execute(select_filial(cd_filial=cd_filial))
-    #data_exist = cursor.fetchone()
-    #if not data_exist:
+    # cursor.execute(select_filial(cd_filial=cd_filial))
+    # data_exist = cursor.fetchone()
+    # if not data_exist:
     if cd_prod['boll'] is not True:
-        cursor.execute(insert_scan(cd_filial=cd_filial,cd_prod=0))
+        cursor.execute(insert_scan(cd_filial=cd_filial, cd_prod=0))
     else:
         cursor.execute(insert_scan(cd_filial=cd_filial, cd_prod=cd_prod['cd_prod']))
-    #else:
+    # else:
     #    cursor.execute(update_scan(cd_filial=cd_filial,count=int(data_exist[2])))
+    conn.commit()
+    conn.close()
+
+
+def exec_next_banner():
+    conn = postgressbd()
+    cursor = conn.cursor()
+    cursor.execute(next_banner())
+    ret = cursor.fetchone()
+    conn.commit()
+    conn.close()
+    return int(ret) + 1
+
+
+def exec_insert_banner(form, form_mini):
+    conn = postgressbd()
+    cursor = conn.cursor()
+    cursor.execute(insert_banner(form=form))
+    cursor.execute(insert_banner_mini(form_mini=form_mini))
     conn.commit()
     conn.close()

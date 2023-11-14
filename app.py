@@ -1,9 +1,7 @@
 import os
 import subprocess
-
 from control import exec_base_value, img_retriv, exec_busca_prod, exec_config, exec_recommendation, exec_carousel, \
-    exec_not_foun, exec_control_scan
-# import multiprocessing
+    exec_not_foun, exec_control_scan, exec_next_banner, exec_insert_banner
 import threading
 from waitress import serve
 from flask import Flask, request, jsonify
@@ -194,6 +192,26 @@ def banner():
     return jsonify(carousel)
 
 
+@app.route('/cadastro_banner', methods=['POST'])
+def verificar_dimensoes():
+    imagem, path = request.files['banner'].read(), request.files['banner'].filename
+    form = {
+        'path': 'http://10.11.1.5:8000/' + path,
+        'dt_ini': request.form['dt_ini'],
+        'dt_fim': request.form['dt_fim'],
+        'ativo': int(request.form['ativo']),
+        'cd_filia': int(request.form['cd_filial'])
+    }
+    next_banner = exec_next_banner()
+    form_mini = {
+        'banner_id': next_banner,
+        'path': 'http://10.11.1.5:8000/mini/'+request.files['mini'].filename,
+        'ativo': 1
+    }
+    exec_insert_banner(form=form, form_mini=form_mini)
+    return jsonify({"bool": True, "mensagem": "Imagem inserida com sucesso."})
+
+
 def start_flask():
     if __name__ == '__main__':
         # num_cores = multiprocessing.cpu_count()
@@ -211,6 +229,5 @@ def start_img_server():
 
 thread_flask = threading.Thread(target=start_flask)
 thread_img_server = threading.Thread(target=start_img_server)
-
 thread_flask.start()
 thread_img_server.start()
