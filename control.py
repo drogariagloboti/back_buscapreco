@@ -187,17 +187,17 @@ def exec_control_scan(cd_filial, cd_prod):
 
 
 def exec_next_banner():
-    conn = postgressbd()
+    conn = postgressbd_local()
     cursor = conn.cursor()
     cursor.execute(next_banner())
     ret = cursor.fetchone()
     conn.commit()
     conn.close()
-    return int(ret) + 1
+    return int(ret[0]) + 1
 
 
 def exec_insert_banner(form, form_mini):
-    conn = postgressbd()
+    conn = postgressbd_local()
     cursor = conn.cursor()
     cursor.execute(insert_banner(form=form))
     cursor.execute(insert_banner_mini(form_mini=form_mini))

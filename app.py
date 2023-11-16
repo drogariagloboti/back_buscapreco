@@ -7,9 +7,12 @@ from waitress import serve
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import mini_queue
+from PIL import Image
+import io
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
+banner_path = os.getcwd()
 
 
 @app.route('/config', methods=['POST'])
@@ -192,23 +195,32 @@ def banner():
     return jsonify(carousel)
 
 
+def salvar_banner(imagem, path):
+    imagem = Image.open(io.BytesIO(imagem))
+    imagem.save(banner_path + path)
+
+
+
 @app.route('/cadastro_banner', methods=['POST'])
 def verificar_dimensoes():
     imagem, path = request.files['banner'].read(), request.files['banner'].filename
+    imagem_mini, path_mini = request.files['mini'].read(), request.files['mini'].filename
     form = {
-        'path': 'http://10.11.1.5:8000/' + path,
+        'path': 'http://10.10.0.56:8855/' + path,
         'dt_ini': request.form['dt_ini'],
         'dt_fim': request.form['dt_fim'],
         'ativo': int(request.form['ativo']),
-        'cd_filia': int(request.form['cd_filial'])
+        'cd_filial': int(request.form['cd_filial'])
     }
     next_banner = exec_next_banner()
     form_mini = {
         'banner_id': next_banner,
-        'path': 'http://10.11.1.5:8000/mini/'+request.files['mini'].filename,
+        'path': 'http://10.10.0.56:8855/micro/' + path_mini,
         'ativo': 1
     }
     exec_insert_banner(form=form, form_mini=form_mini)
+    salvar_banner(imagem, '\\banner\\'+path)
+    salvar_banner(imagem_mini, '\\banner\\micro\\' + request.files['mini'].filename)
     return jsonify({"bool": True, "mensagem": "Imagem inserida com sucesso."})
 
 
@@ -216,7 +228,7 @@ def start_flask():
     if __name__ == '__main__':
         # num_cores = multiprocessing.cpu_count()
         # print(f"Servidor executando com {num_cores} cores")
-        serve(app, host='0.0.0.0', port=5000)
+        serve(app, host='0.0.0.0', port=8850)
         # app.run(host='0.0.0.0', port=5000, debug=True)
 
 
@@ -229,5 +241,8 @@ def start_img_server():
 
 thread_flask = threading.Thread(target=start_flask)
 thread_img_server = threading.Thread(target=start_img_server)
-thread_flask.start()
 thread_img_server.start()
+thread_flask.start()
+
+
+
