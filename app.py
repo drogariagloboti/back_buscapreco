@@ -12,6 +12,11 @@ import io
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
+if not os.path.isdir(f'./banner'):
+    os.mkdir(f"./banner")
+if not os.path.isdir(f"./banner/micro"):
+    os.mkdir(f"./banner/micro")
+
 banner_path = os.getcwd()
 
 
