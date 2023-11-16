@@ -224,6 +224,7 @@ def verificar_dimensoes():
     return jsonify({"bool": True, "mensagem": "Imagem inserida com sucesso."})
 
 
+#
 def start_flask():
     if __name__ == '__main__':
         # num_cores = multiprocessing.cpu_count()
