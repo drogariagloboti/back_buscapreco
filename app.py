@@ -241,7 +241,7 @@ def start_flask():
 def start_img_server():
     diretorio_banner = os.getcwd() + '\\banner'  # Substitua pelo caminho real do diretório 'banner'
     os.chdir(diretorio_banner)
-    comando = f"python -m http.server 8000"
+    comando = f"python -m http.server 8855"
     subprocess.run(comando, shell=True)
 
 

@@ -193,7 +193,7 @@ def exec_next_banner():
     ret = cursor.fetchone()
     conn.commit()
     conn.close()
-    return int(ret[0]) + 1
+    return int(ret[0])
 
 
 def exec_insert_banner(form, form_mini):

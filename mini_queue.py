@@ -8,6 +8,8 @@ mini_banners = queue.Queue()
 def next():
     if mini_banners.qsize() == 0:
         ret = exec_minibanner()
+        if not ret:
+            return []
         for i in ret:
             mini_banners.put(item=i)
     print(mini_banners.qsize())
